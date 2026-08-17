@@ -13,6 +13,12 @@ Env vars required:
 """
 from datetime import datetime
 
+# Load credentials from .env BEFORE importing the other modules, since they
+# read os.environ[...] at import time. Harmless no-op on GitHub Actions
+# (where secrets are already real env vars and no .env file exists).
+from dotenv import load_dotenv
+load_dotenv()
+
 from woo_client import fetch_open_orders, flatten_order_line_items
 from parse_product import parse_product_name
 from smartsheet_sync import upsert_rows
@@ -31,11 +37,14 @@ def main():
     reference_date = datetime.now()
     parsed_rows = []
     parse_failures = 0
+    category_counts = {}
 
     for li in line_items:
         parsed = parse_product_name(li["product_name"], reference_date=reference_date)
         if not parsed["parse_ok"]:
             parse_failures += 1
+        else:
+            category_counts[parsed["category"]] = category_counts.get(parsed["category"], 0) + 1
 
         parsed_rows.append({
             **li,
@@ -48,11 +57,16 @@ def main():
             "end_time": parsed["end_time"],
             "parse_ok": parsed["parse_ok"],
             "parse_error": parsed["parse_error"],
+            "category": parsed["category"],
+            "location_note": parsed["location_note"],
             "order_line_key": f"{li['order_id']}-{li['line_item_id']}",
         })
 
+    print("  Category breakdown:")
+    for cat, count in sorted(category_counts.items()):
+        print(f"    {cat}: {count}")
     if parse_failures:
-        print(f"  WARNING: {parse_failures} product name(s) failed to parse — "
+        print(f"  WARNING: {parse_failures} product name(s) genuinely failed to parse — "
               f"check 'Parse Error' column in Smartsheet for details")
 
     print("Syncing to Smartsheet...")
