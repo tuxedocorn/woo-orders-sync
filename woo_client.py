@@ -38,8 +38,19 @@ def fetch_open_orders() -> List[Dict]:
             },
             timeout=30,
         )
-        resp.raise_for_status()
-        batch = resp.json()
+        if resp.status_code != 200:
+            print(f"WooCommerce API returned status {resp.status_code}")
+            print(f"Response headers: {dict(resp.headers)}")
+            print(f"Response body (first 1000 chars):\n{resp.text[:1000]}")
+            resp.raise_for_status()
+
+        try:
+            batch = resp.json()
+        except ValueError:
+            print(f"WooCommerce API did not return JSON. Status: {resp.status_code}")
+            print(f"Content-Type: {resp.headers.get('Content-Type')}")
+            print(f"Response body (first 1000 chars):\n{resp.text[:1000]}")
+            raise
         if not batch:
             break
         all_orders.extend(batch)
