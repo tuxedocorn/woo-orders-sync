@@ -17,7 +17,7 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
-# Column IDs (from sheet creation) — column titles must match the sheet exactly
+# Column IDs (from sheet creation + the Category/Location Note columns added later)
 COLS = {
     "Order Number": 899570186096516,
     "Order Status": 5403169813467012,
@@ -38,6 +38,8 @@ COLS = {
     "Parse Error": 758832697741188,
     "Order Line Key": 5262432325111684,
     "Last Synced": 3010632511426436,
+    "Category": 7889940132433796,
+    "Location Note": 571590737956740,
 }
 
 
@@ -82,6 +84,8 @@ def build_row_cells(parsed_row: Dict) -> List[Dict]:
         _cell("Parse Error", parsed_row.get("parse_error")),
         _cell("Order Line Key", parsed_row["order_line_key"]),
         _cell("Last Synced", now_iso),
+        _cell("Category", parsed_row.get("category")),
+        _cell("Location Note", parsed_row.get("location_note")),
     ]
 
 
@@ -104,7 +108,7 @@ def upsert_rows(parsed_rows: List[Dict]):
             rows_to_add.append({"cells": cells, "toBottom": True})
 
     if rows_to_add:
-        for i in range(0, len(rows_to_add), 400):  # Smartsheet batch limit
+        for i in range(0, len(rows_to_add), 400):
             chunk = rows_to_add[i:i + 400]
             resp = requests.post(f"{BASE_URL}/rows", headers=HEADERS, json=chunk, timeout=60)
             resp.raise_for_status()
