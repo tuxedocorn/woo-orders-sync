@@ -1,1 +1,29 @@
+name: Sync Woo Pickup Orders to Smartsheet
 
+on:
+  schedule:
+    # Every 2 hours, daytime Mountain Time (13:00-01:00 UTC covers ~6am-6pm MT/MDT)
+    - cron: '0 13,15,17,19,21,23 * * *'
+  workflow_dispatch: {}  # allows manual "Run workflow" button in GitHub UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run sync
+        env:
+          WOO_SITE_URL: ${{ secrets.WOO_SITE_URL }}
+          WOO_CONSUMER_KEY: ${{ secrets.WOO_CONSUMER_KEY }}
+          WOO_CONSUMER_SECRET: ${{ secrets.WOO_CONSUMER_SECRET }}
+          SMARTSHEET_ACCESS_TOKEN: ${{ secrets.SMARTSHEET_ACCESS_TOKEN }}
+        run: python main.py
