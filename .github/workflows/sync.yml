@@ -17,6 +17,15 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Diagnose connectivity to WooCommerce site
+        run: |
+          echo "--- DNS resolution ---"
+          getent hosts tuxedocorn.com || true
+          echo "--- curl verbose (10s timeout) ---"
+          curl -v --max-time 10 "https://tuxedocorn.com/wp-json/" || true
+          echo "--- Runner's outbound IP (for reference) ---"
+          curl -s https://checkip.amazonaws.com || true
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
