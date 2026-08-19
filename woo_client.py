@@ -14,6 +14,13 @@ WOO_CONSUMER_SECRET = os.environ["WOO_CONSUMER_SECRET"]
 
 ORDERS_ENDPOINT = f"{WOO_SITE_URL}/wp-json/wc/v3/orders"
 
+# SiteGround's anti-bot system flags requests using the default python-requests
+# user-agent as unlabeled bot traffic. A descriptive, identifying User-Agent
+# resolves this (confirmed with SiteGround support, Aug 2026).
+REQUEST_HEADERS = {
+    "User-Agent": "TuxedoCornWooOrdersSync/1.0 (+https://tuxedocorn.com)"
+}
+
 # Only pull orders from this season onward (pre-sales started April 1, 2026).
 # Change this each season, or move to an env var if you want it configurable
 # without editing code.
@@ -39,6 +46,7 @@ def fetch_open_orders() -> List[Dict]:
         resp = requests.get(
             ORDERS_ENDPOINT,
             auth=(WOO_CONSUMER_KEY, WOO_CONSUMER_SECRET),
+            headers=REQUEST_HEADERS,
             params={
                 "status": "any",
                 "after": SEASON_START,
