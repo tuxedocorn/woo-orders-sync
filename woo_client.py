@@ -24,7 +24,13 @@ REQUEST_HEADERS = {
 # Only pull orders from this season onward (pre-sales started April 1, 2026).
 # Change this each season, or move to an env var if you want it configurable
 # without editing code.
-SEASON_START = "2026-04-01T00:00:00"
+# Only pull orders from this season onward (pre-sales started April 1, 2026).
+# Can be overridden via the WOO_FETCH_AFTER env var for a one-off backfill run
+# (e.g. set to "2024-04-01T00:00:00" to catch older stray orders), without
+# permanently changing the default used by the regular scheduled runs.
+# `or` (not just .get's default) handles the case where the workflow sets
+# WOO_FETCH_AFTER to an empty string on normal scheduled runs.
+SEASON_START = os.environ.get("WOO_FETCH_AFTER") or "2026-04-01T00:00:00"
 
 
 def fetch_open_orders() -> List[Dict]:
@@ -41,6 +47,8 @@ def fetch_open_orders() -> List[Dict]:
     all_orders = []
     page = 1
     per_page = 100
+
+    print(f"Fetching orders placed on/after {SEASON_START}...")
 
     while True:
         resp = requests.get(
