@@ -1,5 +1,7 @@
 """
-WooCommerce REST API client — fetches orders that still need fulfillment.
+WooCommerce REST API client — fetches ALL orders (any status) placed since
+the season start, so Smartsheet reports can filter by status as needed
+rather than the script deciding what counts as "open."
 Docs: https://woocommerce.github.io/woocommerce-rest-api-docs/#orders
 """
 import os
@@ -12,14 +14,22 @@ WOO_CONSUMER_SECRET = os.environ["WOO_CONSUMER_SECRET"]
 
 ORDERS_ENDPOINT = f"{WOO_SITE_URL}/wp-json/wc/v3/orders"
 
-# Statuses that represent orders still needing fulfillment / pickup
-OPEN_STATUSES = ["pending", "processing", "on-hold"]
+# Only pull orders from this season onward (pre-sales started April 1, 2026).
+# Change this each season, or move to an env var if you want it configurable
+# without editing code.
+SEASON_START = "2026-04-01T00:00:00"
 
 
 def fetch_open_orders() -> List[Dict]:
     """
-    Fetches all orders in OPEN_STATUSES, paginating through the WooCommerce API.
-    Returns a flat list of raw order dicts (each with a 'line_items' array).
+    Fetches ALL orders (status='any', which WooCommerce interprets as every
+    status except 'trash') placed on or after SEASON_START, paginating
+    through the WooCommerce API. Returns a flat list of raw order dicts
+    (each with a 'line_items' array).
+
+    Function name kept as fetch_open_orders for compatibility with main.py;
+    despite the name it no longer filters by status -- filtering now happens
+    in Smartsheet, using the 'Order Status' column this pulls in per row.
     """
     all_orders = []
     page = 1
@@ -30,7 +40,8 @@ def fetch_open_orders() -> List[Dict]:
             ORDERS_ENDPOINT,
             auth=(WOO_CONSUMER_KEY, WOO_CONSUMER_SECRET),
             params={
-                "status": ",".join(OPEN_STATUSES),
+                "status": "any",
+                "after": SEASON_START,
                 "per_page": per_page,
                 "page": page,
                 "orderby": "date",
